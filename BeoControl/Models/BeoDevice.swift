@@ -67,6 +67,13 @@ final class BeoDevice: Identifiable, ObservableObject {
     // Discovered GATT tree, surfaced through the explorer.
     @Published var services: [GATTService] = []
 
+    /// Characteristic chosen (or auto-detected) as the proprietary B&O control
+    /// endpoint. When set, ANC/transparency commands are written here for real.
+    @Published var controlCharacteristicUUID: CBUUID?
+
+    /// Remembered active ANC mode so the on/off toggle can restore it.
+    var lastActiveANCMode: ANCMode = .adaptive
+
     /// Control state. For standard-GATT-readable values these reflect reality;
     /// for proprietary B&O control they reflect the last command we attempted.
     @Published var control = ControlState()

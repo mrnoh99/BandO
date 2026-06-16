@@ -51,7 +51,8 @@ open BandO.xcodeproj
 | Battery level | Standard BLE GATT | ✅ Read live |
 | Device info (model/firmware/serial) | Standard BLE GATT | ✅ Read live |
 | Discover all services/characteristics | BLE GATT | ✅ Full explorer |
-| ANC / EQ / gaming control | **Proprietary B&O protocol (mostly Bluetooth Classic / RFCOMM)** | ⚠️ UI ready; needs the proprietary characteristic mapped |
+| **ANC toggle / mode / transparency** | **Proprietary B&O protocol (mostly Bluetooth Classic / RFCOMM)** | ⚙️ Encoded & written over BLE to the mapped control characteristic |
+| EQ / gaming control | Proprietary B&O protocol | ⚠️ UI ready; reuse the same write path |
 
 Bang & Olufsen's noise-control, EQ and gaming features run over a **proprietary
 protocol** that largely uses **Bluetooth Classic (RFCOMM)**. iOS does **not**
@@ -68,14 +69,24 @@ This app takes the honest "attempt real BLE" path:
    notifications — the practical way to reverse-engineer and then drive real
    control.
 
-### Wiring up real control
+### ANC toggle — the real write path
 
-When you identify the control service/characteristic for your unit:
+The noise-control toggle is wired end-to-end over BLE:
 
-1. Add its UUID to `BeoControl/Bluetooth/BeoGATT.swift`.
-2. Encode commands and send them with `BluetoothManager.write(_:to:on:)`
-   (already used by the explorer).
-3. Bind the control views in `ControlSections.swift` to that write path.
+1. `ANCControl` calls `BluetoothManager.toggleANC` / `setANCMode`.
+2. `BeoCommand.anc(_:)` encodes the mode into a `[SOF, opcode, len, payload,
+   checksum]` frame.
+3. The frame is written to the device's **control characteristic** via
+   `BluetoothManager.write(_:to:on:)`.
+
+The control characteristic is **auto-detected** (first writable characteristic
+in a vendor-specific 128-bit service) and can be overridden in **GATT Explorer →
+"Use for control"**. Until the true opcodes for your unit are confirmed, the
+frame values in `BeoCommand.swift` are clearly-marked placeholders — capture the
+real ones with the explorer and edit that one file; nothing else changes.
+
+If no control characteristic is mapped, ANC changes are saved to state and the
+UI tells you so, rather than silently doing nothing.
 
 ## Project layout
 
@@ -88,7 +99,8 @@ BeoControl/
     ControlState.swift           ANC / EQ / Portal control models
   Bluetooth/
     BeoGATT.swift                Known SIG UUIDs + extension points
-    BluetoothManager.swift       CoreBluetooth central (scan/connect/GATT)
+    BeoCommand.swift             Encodes ANC/transparency command frames
+    BluetoothManager.swift       CoreBluetooth central (scan/connect/GATT/control)
   Views/
     ContentView.swift            Tab shell
     ScanView.swift               Device discovery list

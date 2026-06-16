@@ -79,6 +79,74 @@ final class BluetoothManager: NSObject, ObservableObject {
         central.cancelPeripheralConnection(device.peripheral)
     }
 
+    // MARK: - High-level control
+
+    /// Set the active noise-control mode. Updates state and, if a control
+    /// characteristic is mapped, writes the encoded command to hardware.
+    func setANCMode(_ mode: ANCMode, on device: BeoDevice) {
+        device.control.ancMode = mode
+        sendControl(BeoCommand.anc(mode), intent: "ANC → \(mode.rawValue)", on: device)
+    }
+
+    /// Convenience on/off toggle: flips between Off and the last active mode.
+    func toggleANC(on device: BeoDevice) {
+        if device.control.ancMode == .off {
+            setANCMode(device.lastActiveANCMode, on: device)
+        } else {
+            device.lastActiveANCMode = device.control.ancMode
+            setANCMode(.off, on: device)
+        }
+    }
+
+    /// Set the ANC↔transparency blend (0 = full ANC ... 1 = full transparency).
+    func setTransparency(_ level: Double, on device: BeoDevice) {
+        device.control.transparencyLevel = level
+        sendControl(BeoCommand.transparency(level),
+                    intent: "Transparency → \(Int(level * 100))%", on: device)
+    }
+
+    /// Resolve the mapped control characteristic and write, or log intent only.
+    private func sendControl(_ payload: Data, intent: String, on device: BeoDevice) {
+        guard let uuid = device.controlCharacteristicUUID,
+              let node = characteristicNode(uuid, on: device) else {
+            log("\(intent) — saved (no control characteristic mapped yet; map one in GATT Explorer to deliver to hardware).", .warning)
+            return
+        }
+        write(payload, to: node, on: device)
+        log("\(intent) — sent \(payload.hexString) to \(node.name).", .success)
+    }
+
+    /// Mark a characteristic as the proprietary control endpoint.
+    func setControlCharacteristic(_ characteristic: GATTCharacteristic, on device: BeoDevice) {
+        device.controlCharacteristicUUID = characteristic.uuid
+        log("Control characteristic set to \(characteristic.name).", .success)
+    }
+
+    private func characteristicNode(_ uuid: CBUUID, on device: BeoDevice) -> GATTCharacteristic? {
+        for service in device.services {
+            if let match = service.characteristics.first(where: { $0.uuid == uuid }) {
+                return match
+            }
+        }
+        return nil
+    }
+
+    /// Heuristic: pick a likely control endpoint — a writable characteristic in a
+    /// vendor-specific (128-bit) service — so the ANC toggle can attempt a real
+    /// write without manual mapping. The user can override in the explorer.
+    private func autoDetectControlCharacteristic(for device: BeoDevice) {
+        guard device.controlCharacteristicUUID == nil else { return }
+        for service in device.services where service.uuid.uuidString.count > 4 {
+            if let candidate = service.characteristics.first(where: {
+                $0.canWrite && $0.uuid.uuidString.count > 4
+            }) {
+                device.controlCharacteristicUUID = candidate.uuid
+                log("Auto-selected control characteristic candidate \(candidate.name). Verify in GATT Explorer.", .info)
+                return
+            }
+        }
+    }
+
     // MARK: - Generic GATT operations (used by control layer + explorer)
 
     func read(_ characteristic: GATTCharacteristic, on device: BeoDevice) {
@@ -128,6 +196,7 @@ final class BluetoothManager: NSObject, ObservableObject {
             }
             return GATTService(uuid: service.uuid, characteristics: chars)
         }
+        autoDetectControlCharacteristic(for: device)
     }
 }
 

@@ -56,6 +56,10 @@ struct CharacteristicRow: View {
                 if characteristic.isNotifying {
                     Text("LIVE").font(.caption2.bold()).foregroundStyle(.green)
                 }
+                if device.controlCharacteristicUUID == characteristic.uuid {
+                    Label("CONTROL", systemImage: "slider.horizontal.3")
+                        .font(.caption2.bold()).foregroundStyle(.beoAccent)
+                }
             }
 
             if let value = characteristic.lastValue {
@@ -90,6 +94,14 @@ struct CharacteristicRow: View {
                     Button {
                         showWrite.toggle()
                     } label: { Label("Write", systemImage: "arrow.up.circle") }
+                    Button {
+                        bluetooth.setControlCharacteristic(characteristic, on: device)
+                    } label: {
+                        Label(device.controlCharacteristicUUID == characteristic.uuid
+                              ? "Control" : "Use for control",
+                              systemImage: "slider.horizontal.3")
+                    }
+                    .disabled(device.controlCharacteristicUUID == characteristic.uuid)
                 }
             }
             .font(.caption)
