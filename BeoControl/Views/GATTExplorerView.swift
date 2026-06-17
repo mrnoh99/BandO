@@ -30,6 +30,35 @@ struct GATTExplorerView: View {
         }
         .navigationTitle("GATT Explorer")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                ShareLink(item: dump) {
+                    Label("Export dump", systemImage: "square.and.arrow.up")
+                }
+                .disabled(device.services.isEmpty)
+            }
+        }
+    }
+
+    /// A plain-text snapshot of the whole GATT tree — share it to get help
+    /// identifying which characteristic is the proprietary control endpoint.
+    private var dump: String {
+        var lines: [String] = []
+        lines.append("BandO GATT dump")
+        lines.append("Device: \(device.displayName) [\(device.product.rawValue)]")
+        if let m = device.modelNumber { lines.append("Model: \(m)") }
+        if let f = device.firmwareRevision { lines.append("Firmware: \(f)") }
+        if let b = device.batteryLevel { lines.append("Battery: \(b)%") }
+        lines.append("")
+        for service in device.services {
+            lines.append("Service \(service.uuid.uuidString) — \(service.name)")
+            for c in service.characteristics {
+                var line = "  • \(c.uuid.uuidString) [\(c.propertyDescription)] \(c.name)"
+                if let v = c.lastValue, !v.isEmpty { line += " = \(v.hexString)" }
+                lines.append(line)
+            }
+        }
+        return lines.joined(separator: "\n")
     }
 }
 
