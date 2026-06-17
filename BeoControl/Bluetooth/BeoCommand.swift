@@ -39,6 +39,33 @@ enum BeoCommand {
         return frame(opcode: .setTransparency, payload: [pct])
     }
 
+    /// A labelled candidate encoding of an ANC on/off command. Because the true
+    /// wire format is unknown, the discovery tool tries several common shapes so
+    /// you can find the one your unit actually responds to.
+    struct Candidate: Identifiable {
+        let id = UUID()
+        let label: String
+        let data: Data
+    }
+
+    /// Common ways headphones encode an ANC enable/disable command. Send each to
+    /// a writable characteristic and listen for the headphones to react.
+    static func ancCandidates(on: Bool) -> [Candidate] {
+        let v: UInt8 = on ? 0x01 : 0x00
+        return [
+            Candidate(label: "Framed [SOF op len v cs]",
+                      data: frame(opcode: .setANCMode, payload: [v])),
+            Candidate(label: "Opcode + value [10 0X]",
+                      data: Data([Opcode.setANCMode.rawValue, v])),
+            Candidate(label: "Raw value [0X]",
+                      data: Data([v])),
+            Candidate(label: "Enable flag + state [01 0X]",
+                      data: Data([0x01, v])),
+            Candidate(label: "Mode index [0X 00]",
+                      data: Data([v, 0x00])),
+        ]
+    }
+
     /// Assemble `[SOF, opcode, len, payload..., checksum]` with an XOR checksum.
     private static func frame(opcode: Opcode, payload: [UInt8]) -> Data {
         var bytes: [UInt8] = [startOfFrame, opcode.rawValue, UInt8(payload.count)]

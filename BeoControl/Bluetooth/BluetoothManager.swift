@@ -109,10 +109,12 @@ final class BluetoothManager: NSObject, ObservableObject {
     private func sendControl(_ payload: Data, intent: String, on device: BeoDevice) {
         guard let uuid = device.controlCharacteristicUUID,
               let node = characteristicNode(uuid, on: device) else {
+            device.controlStatus = "\(intent): saved to app only — no control characteristic mapped. Use ANC Discovery or GATT Explorer to find the real one."
             log("\(intent) — saved (no control characteristic mapped yet; map one in GATT Explorer to deliver to hardware).", .warning)
             return
         }
         write(payload, to: node, on: device)
+        device.controlStatus = "\(intent): sent \(payload.hexString) → \(node.name) (awaiting ack…)"
         log("\(intent) — sent \(payload.hexString) to \(node.name).", .success)
     }
 
@@ -339,10 +341,20 @@ extension BluetoothManager: CBPeripheralDelegate {
                                 error: Error?) {
         let uuid = characteristic.uuid
         Task { @MainActor in
+            let name = KnownUUID.name(for: uuid) ?? uuid.uuidString
             if let error {
                 self.log("Write failed on \(uuid.uuidString): \(error.localizedDescription)", .error)
+                if let device = self.connected[peripheral.identifier],
+                   device.controlCharacteristicUUID == uuid {
+                    device.controlStatus = "Write to \(name) FAILED: \(error.localizedDescription). This characteristic likely isn't the ANC control endpoint."
+                }
             } else {
-                self.log("Write acknowledged on \(KnownUUID.name(for: uuid) ?? uuid.uuidString).", .success)
+                self.log("Write acknowledged on \(name).", .success)
+                if let device = self.connected[peripheral.identifier],
+                   device.controlCharacteristicUUID == uuid,
+                   let status = device.controlStatus, status.contains("awaiting ack") {
+                    device.controlStatus = status.replacingOccurrences(of: "awaiting ack…", with: "acknowledged ✓")
+                }
             }
         }
     }

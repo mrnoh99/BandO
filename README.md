@@ -88,6 +88,25 @@ real ones with the explorer and edit that one file; nothing else changes.
 If no control characteristic is mapped, ANC changes are saved to state and the
 UI tells you so, rather than silently doing nothing.
 
+### "Connected but ANC doesn't change" — finding the real control path
+
+This is expected until the true protocol for your unit is known: the placeholder
+opcodes won't flip real ANC, and the headphones may only accept ANC commands
+over Bluetooth Classic (unreachable from a non-MFi iOS app). The app gives you
+the tools to find out:
+
+- The **ANC section** shows the exact bytes sent, the target characteristic, and
+  whether the write was **acknowledged or failed**.
+- **Noise Control → ANC Discovery** lets you pick any writable characteristic and
+  fire several **candidate ANC on/off encodings** at it while you listen for the
+  headphones to react. Subscribe to watch for response notifications.
+- When a candidate works, tap **"Set as control characteristic"** and update
+  `BeoCommand.swift` with the encoding that worked — ANC then drives hardware
+  permanently.
+- If **no writable characteristics exist** over BLE, that's the signal that ANC
+  is Classic-only on your unit and cannot be controlled from an unprivileged iOS
+  app.
+
 ## Project layout
 
 ```

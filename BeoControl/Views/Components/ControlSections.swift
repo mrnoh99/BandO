@@ -39,10 +39,19 @@ struct ANCControl: View {
                 .foregroundStyle(.secondary)
 
             if device.controlCharacteristicUUID == nil {
-                Label("Mapped to state only — set a control characteristic in GATT Explorer to send to hardware.",
+                Label("Mapped to state only — set a control characteristic in GATT Explorer or ANC Discovery to send to hardware.",
                       systemImage: "exclamationmark.triangle")
                     .font(.caption2)
                     .foregroundStyle(.orange)
+            }
+
+            if let status = device.controlStatus {
+                Text(status)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
             }
 
             if device.control.ancMode == .transparency || device.control.ancMode == .adaptive {
