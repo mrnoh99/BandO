@@ -56,7 +56,7 @@ struct ANCDiscoveryView: View {
                             Spacer()
                             if selected == item.char.uuid {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.beoAccent)
+                                    .foregroundStyle(Color.beoAccent)
                             }
                         }
                     }

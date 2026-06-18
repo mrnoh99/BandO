@@ -29,7 +29,7 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		A100000000000000000000002 /* mainGroup */ = {
+		A100000000000000000000002 = {
 			isa = PBXGroup;
 			children = (
 				A100000000000000000000004 /* BeoControl */,
@@ -90,7 +90,7 @@
 				en,
 				Base,
 			);
-			mainGroup = A100000000000000000000002 /* mainGroup */;
+			mainGroup = A100000000000000000000002;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A100000000000000000000003 /* Products */;
@@ -248,6 +248,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 9AWEB9NYHH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BandO uses Bluetooth to discover and control your Bang & Olufsen Beoplay H95 and Beoplay Portal headphones.";
@@ -279,6 +280,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 9AWEB9NYHH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BandO uses Bluetooth to discover and control your Bang & Olufsen Beoplay H95 and Beoplay Portal headphones.";

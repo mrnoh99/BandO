@@ -87,7 +87,7 @@ struct CharacteristicRow: View {
                 }
                 if device.controlCharacteristicUUID == characteristic.uuid {
                     Label("CONTROL", systemImage: "slider.horizontal.3")
-                        .font(.caption2.bold()).foregroundStyle(.beoAccent)
+                        .font(.caption2.bold()).foregroundStyle(Color.beoAccent)
                 }
             }
 
