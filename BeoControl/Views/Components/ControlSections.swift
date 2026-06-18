@@ -1,18 +1,35 @@
 import SwiftUI
 
-/// Active noise-control selector. Updates device state and (when a control
-/// characteristic has been mapped) writes the encoded command to hardware.
+/// Active noise-control selector. Writes the encoded command to hardware via
+/// the mapped control characteristic, and updates device state.
 struct ANCControl: View {
+    @EnvironmentObject private var bluetooth: BluetoothManager
     @ObservedObject var device: BeoDevice
+
+    private var ancOn: Binding<Bool> {
+        Binding(
+            get: { device.control.ancMode != .off },
+            set: { _ in bluetooth.toggleANC(on: device) }
+        )
+    }
+
+    private var mode: Binding<ANCMode> {
+        Binding(
+            get: { device.control.ancMode },
+            set: { bluetooth.setANCMode($0, on: device) }
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Picker("Mode", selection: Binding(
-                get: { device.control.ancMode },
-                set: { device.control.ancMode = $0 }
-            )) {
-                ForEach(ANCMode.allCases) { mode in
-                    Label(mode.rawValue, systemImage: mode.systemImage).tag(mode)
+            Toggle(isOn: ancOn) {
+                Label("Noise cancellation", systemImage: "wave.3.right.circle.fill")
+                    .font(.headline)
+            }
+
+            Picker("Mode", selection: mode) {
+                ForEach(ANCMode.allCases) { m in
+                    Label(m.rawValue, systemImage: m.systemImage).tag(m)
                 }
             }
             .pickerStyle(.segmented)
@@ -21,11 +38,37 @@ struct ANCControl: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            if device.controlCharacteristicUUID == nil {
+                Label("Mapped to state only — set a control characteristic in GATT Explorer or ANC Discovery to send to hardware.",
+                      systemImage: "exclamationmark.triangle")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
+
+            if let status = device.controlStatus {
+                Text(status)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+            }
+
             if device.control.ancMode == .transparency || device.control.ancMode == .adaptive {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "wave.3.right")
-                        Slider(value: $device.control.transparencyLevel)
+                        Slider(
+                            value: Binding(
+                                get: { device.control.transparencyLevel },
+                                set: { device.control.transparencyLevel = $0 } ),
+                            in: 0...1,
+                            onEditingChanged: { editing in
+                                if !editing {
+                                    bluetooth.setTransparency(device.control.transparencyLevel, on: device)
+                                }
+                            }
+                        )
                         Image(systemName: "ear")
                     }
                     Text("ANC ←→ Transparency: \(Int(device.control.transparencyLevel * 100))%")

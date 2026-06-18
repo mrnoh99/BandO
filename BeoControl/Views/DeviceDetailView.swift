@@ -27,6 +27,11 @@ struct DeviceDetailView: View {
 
                 Section {
                     ANCControl(device: device)
+                    NavigationLink {
+                        ANCDiscoveryView(device: device)
+                    } label: {
+                        Label("ANC Discovery", systemImage: "scope")
+                    }
                 } header: {
                     Text("Noise Control")
                 } footer: {
